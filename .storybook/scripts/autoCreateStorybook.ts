@@ -238,10 +238,8 @@ const createStorybooks = (
           } >{args.children}</${componentFile}>`
         : `<${componentFile} ${argsBlock && "{...args}"} />`;
       const renderContent = hasChildren
-        ? `<${componentFile} ${
-            argsBlock && "{...args}"
-          } ${argsText}>{args.children}</${componentFile}>`
-        : `<${componentFile} ${argsBlock && "{...args}"} ${argsText} />`;
+        ? `<${componentFile} ${argsText}>{args.children}</${componentFile}>`
+        : `<${componentFile} ${argsText} />`;
 
       // ---
 
@@ -269,21 +267,21 @@ export default {
   tags: ['autodocs'],
   ${argsBlock}
   // Add your own control here
-} as Meta;
+} as Meta<Props>;
 
 type Story = StoryObj<typeof ${componentFile}>;
 
 /**
  * パターン
  */
-export const Default: Story = {
+export const Selectable: Story = {
   render: ${typeName ? `(args: ${typeName})` : "()"} => {
     return (${renderDefaultContent});
   },
 };
 
 export const Pattern1: Story = {
-  render: ${typeName ? `(args: ${typeName})` : "()"} => {
+  render: () => {
     return (${renderContent});
   },
 };
