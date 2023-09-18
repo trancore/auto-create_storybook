@@ -1,0 +1,38 @@
+@use "../../../styles/variables";
+
+.content {
+  display: flex;
+  gap: 110px;
+  justify-content: center;
+
+  @media screen and (max-width: #{map-get(variables.$breakpoints, sp)}) {
+    align-items: center;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  > .left-content {
+    > p {
+      font-size: var(--fontsize-text-title);
+      margin: 0 0 54px;
+    }
+
+    > div {
+      background-color: #fff;
+      border-radius: 100%;
+
+      @media screen and (max-width: #{map-get(variables.$breakpoints, sp)}) {
+        margin: 0 auto;
+        width: 80%;
+      }
+    }
+  }
+
+  > .right-content {
+    padding-top: 36px;
+
+    @media screen and (max-width: #{map-get(variables.$breakpoints, sp)}) {
+      margin: 0 12px;
+    }
+  }
+}

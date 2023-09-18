@@ -1,0 +1,36 @@
+@use "../../../styles/variables";
+
+.content {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 24px;
+
+  @media screen and (max-width: #{map-get(variables.$breakpoints, sp)}) {
+    align-items: center;
+  }
+
+  > p {
+    font-size: var(--fontsize-text-title);
+    margin: 0 0 54px;
+  }
+
+  > .repository-box {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+
+    @media screen and (max-width: #{map-get(variables.$breakpoints, sp)}) {
+      justify-content: center;
+      width: 100%;
+    }
+
+    > .repository {
+      margin-bottom: 50px;
+      width: 45%;
+
+      @media screen and (max-width: #{map-get(variables.$breakpoints, sp)}) {
+        width: 100%;
+      }
+    }
+  }
+}

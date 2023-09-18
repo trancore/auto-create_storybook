@@ -1,0 +1,66 @@
+@use "../../../styles/variables";
+
+.content {
+  align-items: center;
+  display: flex;
+  gap: 90px;
+  height: 100%;
+  justify-content: center;
+
+  @media screen and (max-width: #{map-get(variables.$breakpoints, sp)}) {
+    flex-direction: column;
+    gap: 0;
+    justify-content: normal;
+  }
+
+  > .left-content {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+
+    > p {
+      font-size: 92px;
+      margin: 0;
+    }
+
+    > div {
+      margin-top: 54px;
+
+      > div {
+        > .nazo-image {
+          max-width: 300px;
+        }
+      }
+    }
+  }
+
+  > .right-content {
+    > ul {
+      list-style: none;
+
+      @media screen and (max-width: #{map-get(variables.$breakpoints, sp)}) {
+        padding-left: 0;
+      }
+
+      > li {
+        margin: 54px 0;
+      }
+
+      > li:nth-child(2) {
+        margin-left: 130px;
+
+        @media screen and (max-width: #{map-get(variables.$breakpoints, sp)}) {
+          margin-left: 0;
+        }
+      }
+
+      > li:nth-child(3) {
+        margin-left: 260px;
+
+        @media screen and (max-width: #{map-get(variables.$breakpoints, sp)}) {
+          margin-left: 0;
+        }
+      }
+    }
+  }
+}

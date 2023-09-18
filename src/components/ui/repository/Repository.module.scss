@@ -1,0 +1,65 @@
+@use "../../../styles/variables";
+
+.repository {
+  display: flex;
+  flex-direction: column;
+
+  > .readme {
+    > .readme-back {
+      background-color: var(--color-readme-back);
+      border-radius: 50px;
+      display: flex;
+      height: 280px;
+      justify-content: center;
+      padding-top: 40px;
+
+      > .readme-content {
+        background-color: var(--color-readme-content);
+        border-radius: 50px 50px 20px 20px;
+        color: var(--color-text-default);
+        font-size: var(--fontsize-text-readme);
+        overflow: hidden;
+        padding: 20px 16px 0;
+        width: 85%;
+      }
+    }
+  }
+
+  > a > .description {
+    align-items: flex-start;
+    display: flex;
+    flex-direction: column;
+    font-size: var(--fontsize-text-text);
+    padding: 24px 64px 0 24px;
+    word-break: break-word;
+
+    @media screen and (max-width: #{map-get(variables.$breakpoints, sp)}) {
+      padding: 12px 24px 0;
+    }
+
+    > .repository-name {
+      align-items: center;
+      display: flex;
+
+      > p {
+        margin: 0 0 0 24px;
+      }
+    }
+
+    > .repository-description {
+      > p {
+        margin: 8px 0;
+      }
+    }
+
+    > .repository-code {
+      display: flex;
+
+      > .code-language {
+        > p {
+          margin: 0 0 0 8px;
+        }
+      }
+    }
+  }
+}

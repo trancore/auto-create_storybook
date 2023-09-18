@@ -1,0 +1,12 @@
+.header {
+  background-color: var(--color-background);
+  padding: 44px 48px;
+  position: sticky;
+  top: 0;
+
+  > .list {
+    display: flex;
+    gap: 72px;
+    justify-content: flex-end;
+  }
+}

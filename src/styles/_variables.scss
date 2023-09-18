@@ -1,0 +1,9 @@
+// レイアウト幅
+$layout-width-inner: 1180px;
+// ブレークポイント。
+// 基本的にspを使うこと。
+$breakpoints: (
+  "sp": 767px,
+  "tab": #{$layout-width-inner - 1px},
+  "pc": #{$layout-width-inner},
+) !default;
