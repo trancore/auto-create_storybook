@@ -1,0 +1,15 @@
+.link {
+  display: inline-block;
+  text-decoration: none;
+
+  > .link-button {
+    background-color: #fff;
+    border-radius: 50px;
+    padding: 18px;
+
+    > .link-button-text {
+      color: var(--color-text-black);
+      text-align: center;
+    }
+  }
+}

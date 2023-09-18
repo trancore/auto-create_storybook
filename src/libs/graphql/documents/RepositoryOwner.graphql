@@ -1,0 +1,46 @@
+query RepositoryOwner {
+  repositoryOwner(login: "trancore") {
+    id
+    login
+    resourcePath
+    url
+    repositories(
+      last: 100
+      orderBy: { field: UPDATED_AT, direction: DESC }
+      privacy: PUBLIC
+    ) {
+      totalCount
+      edges {
+        node {
+          createdAt
+          description
+          id
+          name
+          updatedAt
+          url
+          owner {
+            id
+            login
+            resourcePath
+            url
+          }
+          object(expression: "main:README.md") {
+            id
+            oid
+            ... on Blob {
+              byteSize
+              id
+              oid
+              text
+            }
+          }
+          primaryLanguage {
+            color
+            id
+            name
+          }
+        }
+      }
+    }
+  }
+}

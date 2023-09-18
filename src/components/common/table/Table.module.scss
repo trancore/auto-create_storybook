@@ -1,0 +1,39 @@
+@use "../../../styles/variables";
+
+.title {
+  color: var(--color-table-header-title);
+  font-size: 2rem;
+  margin: 0 0 8px;
+}
+
+table {
+  border-collapse: collapse;
+  margin-bottom: 24px;
+  table-layout: fixed;
+  width: 100%;
+
+  > tbody {
+    border-top: 3px solid var(--color-table-border-default);
+
+    > tr {
+      td {
+        padding: 12px 4px;
+      }
+
+      td.first-cell {
+        padding: 24px 48px;
+        text-align: center;
+        width: 15%;
+
+        @media screen and (max-width: #{map-get(variables.$breakpoints, sp)}) {
+          padding: 8px 14px;
+          width: 25%;
+        }
+      }
+
+      td.second-cell {
+        text-align: left;
+      }
+    }
+  }
+}

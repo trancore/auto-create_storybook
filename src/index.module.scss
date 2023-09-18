@@ -1,0 +1,89 @@
+@use "./styles/variables";
+
+@import-normalize;
+
+// 英字、数字用フォント
+@font-face {
+  font-family: "rounded-mplus-1p";
+  font-style: normal;
+  font-weight: normal;
+  src: url("./assets/fonts/rounded-mplus-1p/rounded-mplus-1p-regular.ttf")
+    format("truetype");
+}
+
+// 日本語、漢字用フォント
+@font-face {
+  font-family: uzura;
+  font-style: normal;
+  font-weight: normal;
+  src: url("./assets/fonts/uzura/uzura.ttf") format("truetype");
+}
+
+// 変数
+:root {
+  // 命名ルール
+  // --{対象のCSS}-{対象の要素}
+  --color-background: #2f3b69;
+  --color-readme-back: #fff;
+  --color-readme-content: #5c4e4e;
+  --color-text-default: #fff;
+  --color-text-black: #000;
+  --color-table-border-default: #fff;
+  --color-table-header-title: #abe1fa;
+  --fontsize-text-title: 5.8rem;
+  --fontsize-text-text: 1.5rem;
+  --fontsize-text-readme: 0.7rem;
+}
+
+body {
+  background-color: var(--color-background);
+  font-family:
+    uzura,
+    "rounded-mplus-1p",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    "Fira Sans",
+    "Droid Sans",
+    "Helvetica Neue",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  height: 100vh;
+  margin: 0;
+
+  > div {
+    height: 100%;
+  }
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
+    monospace;
+}
+
+main {
+  padding: 0 108px;
+
+  @media screen and (max-width: #{map-get(variables.$breakpoints, sp)}) {
+    padding: 0;
+  }
+}
+
+p,
+td,
+tr {
+  color: var(--color-text-default);
+}
+
+a {
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: white underline;
+}

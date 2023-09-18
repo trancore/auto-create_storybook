@@ -1,0 +1,92 @@
+{
+  "name": "trancore.github.io",
+  "homepage": "https://trancore.github.io/",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "BROWSER=none craco start",
+    "build": "craco build",
+    "test": "craco test",
+    "eject": "react-scripts eject",
+    "eslint": "eslint --fix 'src/**/*.{ts,tsx}'",
+    "stylelint": "stylelint --fix '**/*.scss'",
+    "prettier": "prettier --write 'src/**/*.{ts,tsx,scss}'",
+    "precommit": "lint-staged",
+    "predeploy": "yarn run build",
+    "codegen": "graphql-codegen --config codegen.ts"
+  },
+  "dependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "framer-motion": "^10.16.1",
+    "graphql": "^16.8.0",
+    "modern-css-reset": "^1.4.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-markdown": "^8.0.7",
+    "react-router-dom": "^6.14.2",
+    "react-scripts": "5.0.1",
+    "rehype-sanitize": "^6.0.0",
+    "remark-gfm": "^3.0.1",
+    "sass": "^1.66.1",
+    "urql": "^4.0.5"
+  },
+  "devDependencies": {
+    "@craco/craco": "^7.1.0",
+    "@craco/types": "^7.1.0",
+    "@graphql-codegen/cli": "5.0.0",
+    "@graphql-codegen/client-preset": "4.1.0",
+    "@graphql-codegen/typescript": "^4.0.1",
+    "@graphql-codegen/typescript-urql": "^3.7.3",
+    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
+    "@trivago/prettier-plugin-sort-imports": "^4.2.0",
+    "@types/jest": "^27.5.2",
+    "@types/node": "^16.18.39",
+    "@types/react": "^18.2.17",
+    "@types/react-dom": "^18.2.7",
+    "@types/react-router-dom": "^5.3.3",
+    "@typescript-eslint/eslint-plugin": "^6.2.0",
+    "@typescript-eslint/parser": "^6.2.0",
+    "eslint": "^8.46.0",
+    "eslint-config-prettier": "^8.9.0",
+    "eslint-plugin-react": "^7.33.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^13.2.3",
+    "postcss-scss": "^4.0.7",
+    "prettier": "^3.0.0",
+    "stylelint": "^15.10.2",
+    "stylelint-config-standard-scss": "^10.0.0",
+    "stylelint-order": "^6.0.3",
+    "stylelint-prettier": "^4.0.2",
+    "ts-loader": "^9.4.4",
+    "typescript": "^4.9.5",
+    "web-vitals": "^2.1.4"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "lint-staged": {
+    "*.*": [
+      "prettier-eslint --write",
+      "eslint",
+      "stylelint",
+      "git add"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

@@ -1,0 +1,43 @@
+{
+  // コンパイルする際のオプションを記述
+  "compilerOptions": {
+    // 出力するJSのバージョン
+    "target": "ES6",
+    // コンパイルする際に使用する組み込みライブラリ
+    "lib": ["dom", "dom.iterable", "esnext"],
+    // 出力するJSのモジュールの仕組み
+    "module": "esnext",
+    // .jsと.jsxもコンパイル対象にするか
+    "allowJs": false,
+    // tsxファイルをjsxやjsにコンパイルする際の出力形式
+    "jsx": "react-jsx",
+    // コンパイル結果の表示有無
+    "noEmit": true,
+    // コンパイル対象のファイル間の関係性を一切無視して、全てのファイルを単一のモジュールとしてコンパイルするか
+    "isolatedModules": false,
+    // 厳格な方チェックを行うか
+    "strict": true,
+    // 暗黙的にanyになる値をエラーにするか
+    "noImplicitAny": true,
+    // fallthroughなcaseのうち、1行以上処理が存在しているにも関わらず脱出処理が無いものエラーにするか
+    "noFallthroughCasesInSwitch": true,
+    // import時にファイルパスの大文字小文字を区別するか
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    // non-relativeなimportにおいて、相対的なカレントディレクトリの指定
+    "baseUrl": "./src"
+    // create-react-appによってaliasの設定がうまく機能しない。cracoを使って、webpackのalias設定を上書きしている。
+    // "paths": {
+    //   "~/*": ["src/*"]
+    // }
+  },
+  // コンパイルする対象ファイル
+  "include": ["react-env.d.ts", "**/*.ts", "**/*.tsx"],
+  // includeで指定したファイルから特別に除外するファイル
+  "exclude": ["node_modules", "src/test"],
+  "extends": "./tsconfig.paths.json"
+}
