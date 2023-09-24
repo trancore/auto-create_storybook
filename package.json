@@ -18,7 +18,7 @@
     "predeploy": "yarn run build",
     "codegen": "graphql-codegen --config codegen.ts",
     "build-storybook": "storybook build",
-    "storybook": "storybook dev -p 6006",
+    "storybook": "BROWSER=none storybook dev -p 6006",
     "auto-create-storybook": "node --loader esbuild-register/loader -r esbuild-register .storybook/scripts/autoCreateStorybook.ts"
   },
   "dependencies": {
