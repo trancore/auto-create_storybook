@@ -3,6 +3,9 @@ import fs from "fs";
 import path from "path";
 import { Project } from "ts-morph";
 
+const PROJECT = new Project({
+  tsConfigFilePath: path.join(process.cwd(), "tsconfig.json"),
+});
 /**
  * 自動生成したいcomponentファイルの場所
  */
@@ -10,9 +13,6 @@ const COMPONENT_DIRECTORY_PATH = path.join(
   __dirname,
   "../../src/components/common/table",
 );
-const PROJECT = new Project({
-  tsConfigFilePath: path.join(process.cwd(), "tsconfig.json"),
-});
 /**
  * 自動生成したstorybookファイルの保管場所
  */
@@ -176,7 +176,6 @@ const createStorybooks = (directoryPath: string) => {
 
         importDeclarations.forEach((importDeclaration) => {
           const importModule = importDeclaration.getModuleSpecifierValue();
-          // TODO: aliasを共通して取得できるようにする
           if (importModule.includes("~/")) {
             importDeclarationsTexts.push(importDeclaration.getText());
           }
