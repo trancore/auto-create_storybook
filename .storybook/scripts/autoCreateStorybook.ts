@@ -3,214 +3,238 @@ import fs from "fs";
 import path from "path";
 import { Project } from "ts-morph";
 
-const componentsDir = path.join(__dirname, "../src/components");
-
-const project = new Project({
+/**
+ * 自動生成したいcomponentファイルの場所
+ */
+const COMPONENT_DIRECTORY_PATH = path.join(
+  __dirname,
+  "../../src/components/common/table",
+);
+const PROJECT = new Project({
   tsConfigFilePath: path.join(process.cwd(), "tsconfig.json"),
 });
+/**
+ * 自動生成したstorybookファイルの保管場所
+ */
+const STORED_STORYBOOK_DIRECTORY_PATH = path.join(
+  __dirname,
+  "../../src/components/ui",
+);
 
-const createdStoryFileNames: string[] = [];
+const createdStorybookNames: string[] = [];
 
-const createStoryFiles = (dir: string) => {
-  const items = fs.readdirSync(dir);
+const createStorybooks = (directoryPath: string) => {
+  const componentFileOrDirectoryNames = fs.readdirSync(directoryPath);
 
-  items.forEach((item: string) => {
-    const fullPath = path.join(dir, item);
-    const stats = fs.statSync(fullPath);
+  componentFileOrDirectoryNames.forEach(
+    (componentFileOrDirectoryName: string) => {
+      const fullPath = path.join(directoryPath, componentFileOrDirectoryName);
+      const status = fs.statSync(fullPath);
 
-    if (stats.isDirectory()) {
-      createStoryFiles(fullPath);
-    }
-
-    if (
-      stats.isFile() &&
-      path.extname(item) === ".tsx" &&
-      !item.endsWith(".test.tsx") &&
-      !item.endsWith(".story.tsx")
-    ) {
-      let componentName = path.basename(item, ".tsx");
-
-      if (componentName === "index") {
-        componentName = path.basename(dir);
+      if (status.isDirectory()) {
+        createStorybooks(fullPath);
       }
 
-      const storyFilePath = path.join(dir, `${componentName}.story.tsx`);
+      if (
+        status.isFile() &&
+        path.extname(componentFileOrDirectoryName) === ".tsx"
+      ) {
+        // ex: Table.tsx
+        const componentFileName = componentFileOrDirectoryName;
 
-      if (fs.existsSync(storyFilePath)) return;
+        // ex: Table
+        let componentFile = path.basename(componentFileName, ".tsx");
 
-      const relativeDir = path
-        .relative(componentsDir, dir)
-        .split(path.sep)
-        .join("/");
-
-      const title = `${relativeDir}/${componentName}`;
-
-      const sourceFile = project.getSourceFile(fullPath);
-
-      if (!sourceFile) return;
-
-      const typeAliases = sourceFile.getTypeAliases();
-      const typeAliasesTypeNames: { getName: any }[] = [];
-      const typeAliasesTypeTexts: { getText: any }[] = [];
-
-      typeAliases.forEach((typeAlias: { getText: any; getName: any }) => {
-        typeAliasesTypeNames.push(typeAlias.getName());
-        typeAliasesTypeTexts.push(typeAlias.getText());
-      });
-
-      const typeItems = JSON.stringify(typeAliasesTypeTexts)
-        .replace('"type Props = {\\n', "")
-        .replace('\\n}"', "")
-        .slice(1, -1)
-        .replace(/\\n/g, "\n")
-        .split("\n")
-        .map((item) => item.trim());
-
-      const argsObj: Record<string, unknown> = {};
-
-      typeItems.forEach((item) => {
-        if (!item.includes(":")) return;
-        const key = item.split(":")[0].trim();
-        const value = item.split(":")[1].trim();
-
-        if (key.includes("?")) return;
-
-        switch (
-          !!value // ここでストーリーファイルの　args: {}　に当て込む初期値を設定しています
-        ) {
-          case key.includes("width"):
-          case key.includes("height"):
-            argsObj[key] = "100px";
-            break;
-          case key.includes("color"):
-            argsObj[key] = "white";
-            break;
-          case key.includes("href"):
-          case key.includes("src"):
-          case key.includes("url"):
-            argsObj[key] = "https://example.com";
-            break;
-          case key.includes("backgroundColor"):
-            argsObj[key] = "#3460C5";
-            break;
-          case key.includes("margin"):
-          case key.includes("padding"):
-            argsObj[key] = "10px";
-            break;
-          case key.includes("children"):
-            argsObj[key] = "ここにchildrenの内容が表示されます。";
-            break;
-          case value.includes("number"):
-            argsObj[key] = 1;
-            break;
-          case value.includes("string"):
-            argsObj[key] = "ダミーデータ";
-            break;
-          case value.includes("boolean"):
-            argsObj[key] = false;
-            break;
-          default:
-            // 未知の型または複雑な型の場合、一時的に null を割り当てる
-            argsObj[key] = null;
+        if (componentFile === "index") {
+          componentFile = path.basename(directoryPath);
         }
-      });
 
-      const importPath = path.relative(dir, fullPath).replace(".tsx", "");
-      const typeName = typeAliasesTypeNames[0];
-      const typeContent = typeAliasesTypeTexts.join("\n");
+        const storybookFilePath = path.join(
+          directoryPath,
+          `${componentFile}.stories.tsx`,
+        );
 
-      const imports = sourceFile.getImportDeclarations();
-      const importTypeTexts: string[] = [];
-      const mantineCoreImportNames: string[] = [];
-      const mantineTargetTypes = ["Sx", "MantineSize"];
+        // 今処理しているファイルがstorybookファイルの場合は無視する
+        if (componentFileName.includes(".stories.tsx")) {
+          return;
+        }
 
-      imports.forEach(
-        (imp: {
-          getModuleSpecifierValue: any;
-          getText: any;
-          getNamedImports: any;
-        }) => {
-          const importModule = imp.getModuleSpecifierValue();
+        // 今処理しているファイルのstorybookファイルがすでに存在している場合
+        if (fs.existsSync(storybookFilePath)) {
+          console.log(
+            `info: already exist storybook file (${storybookFilePath}).`,
+          );
+          return;
+        }
 
-          if (
-            (typeContent && importModule.includes("@/types")) ||
-            importModule === "@mantine/form/lib/types"
-          ) {
-            importTypeTexts.push(imp.getText());
+        const relativeDirectoryPath = path
+          .relative(COMPONENT_DIRECTORY_PATH, directoryPath)
+          .split(path.sep)
+          .join("/");
+
+        const title = `${relativeDirectoryPath}/${componentFile}`;
+
+        const sourceFile = PROJECT.getSourceFile(fullPath);
+
+        if (!sourceFile) {
+          console.log(`info: not exist storybook file (${storybookFilePath}).`);
+          return;
+        }
+
+        // ファイル内のtypeを取得
+        const typeAliases = sourceFile.getTypeAliases();
+
+        // ex: ['Props']
+        const typeAliasesTypeNames: string[] = [];
+        // ex: [
+        //   'type Props = {\n' +
+        //   '  tableHeaderTitle: string;\n' +
+        //   '  tableBodyRows: {\n' +
+        //   '    firstCell: string;\n' +
+        //   '    secondCell: string;\n' +
+        //   '  }[];\n' +
+        //   '  textSize?: typeof DEFAULT_TEXT_SIZE;\n' +
+        //   '};'
+        // ]
+        const typeAliasesTypeTexts: string[] = [];
+
+        typeAliases.forEach((typeAlias) => {
+          typeAliasesTypeNames.push(typeAlias.getName());
+          typeAliasesTypeTexts.push(typeAlias.getText());
+        });
+
+        // ex
+        const types = JSON.stringify(typeAliasesTypeTexts)
+          .replace("type Props = {\\n", "")
+          .replace("\\n};", "")
+          // typeAliasesTypeTextsの"[]"と最初のkeyvalueのインデントを削除
+          .slice(4, -1)
+          .replace(/\\n/g, "\n")
+          .split("\n")
+          .map((typeText) => typeText.trim());
+
+        const argsObj: Record<string, unknown> = {};
+
+        // 値がオブジェクトの場合はnullを割り当てる
+        const objectStart = types.findIndex((type) => type.includes(": {"));
+        const objectEnd = types.findIndex((type) => type.includes("}"));
+        const typesFilterObject = types.filter(
+          (_, index) => index < objectStart + 1 || index > objectEnd,
+        );
+
+        typesFilterObject.forEach((type) => {
+          if (!type.includes(":")) {
+            return;
           }
-          if (importModule === "@mantine/core") {
-            const namedImports = imp.getNamedImports();
-            const importNames = namedImports.map(
-              (namedImport: { getName: any }) => namedImport.getName(),
-            );
-            const filteredImportNames = importNames.filter((name: string) =>
-              mantineTargetTypes.includes(name),
-            );
-            mantineCoreImportNames.push(...filteredImportNames);
-          }
-        },
-      );
 
-      const importTypePath = importTypeTexts.join("\n");
-      const importMantineCore =
-        mantineCoreImportNames.length > 0
-          ? `import { ${mantineCoreImportNames.join(
-              ", ",
-            )} } from '@mantine/core';`
+          const key = type.split(":")[0].trim();
+          const value = type.split(":")[1].trim();
+
+          // Optionalの場合は何もしない
+          if (key.includes("?")) {
+            return;
+          }
+
+          // storybook ファイルの args: {} に初期値を設定する
+          switch (!!value) {
+            case key.includes("children"):
+              argsObj[key] = "ここにchildrenの内容が表示されます";
+              break;
+            case value.includes("number"):
+              argsObj[key] = 1;
+              break;
+            case value.includes("number[]") || value.includes("Array<number>"):
+              argsObj[key] = [1, 2, 3];
+              break;
+            case value.includes("string"):
+              argsObj[key] = "ダミーデータ";
+              break;
+            case value.includes("string[]" || value.includes("Array<string>")):
+              argsObj[key] = [
+                "ダミーデータ１",
+                "ダミーデータ2",
+                "ダミーデータ3",
+              ];
+              break;
+            case value.includes("boolean"):
+              argsObj[key] = false;
+              break;
+            default:
+              // 未知の型または複雑な型の場合、手動で設定してもらう
+              argsObj[key] = "手動で設定して下さい";
+          }
+        });
+
+        const importComponentName = path
+          .relative(directoryPath, fullPath)
+          .replace(".tsx", "");
+        // コンポーネント内の型定義はPropsだけとする
+        const typeName = typeAliasesTypeNames[0];
+
+        const importDeclarations = sourceFile.getImportDeclarations();
+        const importDeclarationsTexts: string[] = [];
+
+        importDeclarations.forEach((importDeclaration) => {
+          const importModule = importDeclaration.getModuleSpecifierValue();
+          // TODO: aliasを共通して取得できるようにする
+          if (importModule.includes("~/")) {
+            importDeclarationsTexts.push(importDeclaration.getText());
+          }
+        });
+
+        // ex: ['import classes from "~/components/common/button/LinkButton.module.scss";']
+        const importDeclarationsText = importDeclarationsTexts.join("\n");
+
+        const argsBlock = typeName
+          ? `args:${JSON.stringify(argsObj, null, 2)},`
           : "";
 
-      const argsBlock = typeName
-        ? `args:
-        ${JSON.stringify(argsObj, null, 2)}
-      ,`
-        : "";
+        const hasChildren = types.some((type) => /^children:/.test(type));
 
-      const hasChildren = typeItems.some((item) => /^children:/.test(item));
+        const renderContent = hasChildren
+          ? `<${componentFile} {...args}>{args.children}</${componentFile}>`
+          : `<${componentFile} {...args} />`;
 
-      const renderContent = hasChildren
-        ? `<${componentName} {...args}>{args.children}</${componentName}>`
-        : `<${componentName} {...args} />`;
+        const content = `
+import { ComponentProps } from "react";
+import { Meta, StoryObj } from '@storybook/react';
+import { ${componentFile} } from './${importComponentName}';
+${importDeclarationsText}
 
-      const content = `
-  import { Meta, StoryObj } from '@storybook/react';
-  import ${componentName} from './${importPath}';
-  ${importTypePath}
-  ${importMantineCore}
+type Props = ComponentProps<typeof ${componentFile}>
 
-  ${typeContent}
+export default {
+  title: '${title}',
+  component: ${componentFile},
+  tags: ['autodocs'],
+  ${argsBlock}
+  // Add your own control here
+} as Meta;
 
-  export default {
-    title: '${title}',
-    component: ${componentName},
-    tags: ['autodocs'],
-    ${argsBlock}
-    // Add your own control here
-  } as Meta;
+type Story = StoryObj<typeof ${componentFile}>;
 
-  type Story = StoryObj<typeof ${componentName}>;
-
-  export const Default: Story = {
-    render: ${typeName ? `(args: ${typeName})` : "()"} => {
-      /* eslint-disable react-hooks/rules-of-hooks */
-      return (${renderContent});
-    },
-  };
+export const Default: Story = {
+  render: ${typeName ? `(args: ${typeName})` : "()"} => {
+    return (${renderContent});
+  },
+};
   `;
 
-      fs.writeFileSync(storyFilePath, content);
-      createdStoryFileNames.push(storyFilePath);
-    }
-  });
+        fs.writeFileSync(storybookFilePath, content);
+        createdStorybookNames.push(storybookFilePath);
+      }
+    },
+  );
 };
 
 console.log("Creating story files...");
-createStoryFiles(componentsDir);
+createStorybooks(COMPONENT_DIRECTORY_PATH);
 console.log("Done!");
 
 console.log("Running Prettier...");
-createdStoryFileNames.forEach((fileName) => {
+createdStorybookNames.forEach((StorybookName) => {
   exec(
-    `prettier --write ${fileName}`,
+    `prettier --write ${StorybookName}`,
     (error: any, stdout: any, stderr: any) => {
       if (error) {
         console.log(`error: ${error.message}`);
