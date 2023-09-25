@@ -4,16 +4,24 @@ import path from "path";
 import { Project } from "ts-morph";
 import { promisify } from "util";
 
-const PROJECT = new Project({
-  tsConfigFilePath: path.join(process.cwd(), "tsconfig.json"),
-});
 /**
- * 自動生成したいcomponentファイルの場所
+ * 自動生成したいcomponentファイルのパス
+ */
+const COMPONENTS_PATH = "/components/common/";
+/**
+ * 自動生成したいcomponentファイルの絶対パス
  */
 const COMPONENT_DIRECTORY_PATH = path.join(
   __dirname,
-  "../../src/components/common/table",
+  `../../src${COMPONENTS_PATH}`,
 );
+/**
+ * アライアス
+ */
+const ALIAS = "~";
+const PROJECT = new Project({
+  tsConfigFilePath: path.join(process.cwd(), "tsconfig.json"),
+});
 
 const createdStorybookFilePaths: string[] = [];
 
@@ -31,7 +39,6 @@ const createStorybooks = (
   anotherStorybookPath?: string,
 ) => {
   // storybookを配置するパス。
-  // コンポーネントを同じディレクトリに保存する場合は、
   const storybookDirectoryPath = anotherStorybookPath
     ? directoryPath.replace("components", anotherStorybookPath)
     : directoryPath;
@@ -120,14 +127,17 @@ const createStorybooks = (
       const typeProps = typeAliasesTypes.filter(
         (typeAliasesType) => typeAliasesType.typeName === "Props",
       );
-      const types = JSON.stringify(typeProps[0].typeText)
-        .replace("type Props = {\\n", "")
-        .replace("\\n};", "")
-        // typeAliasesTypeTextsの"[]"と最初のkeyvalueのインデントを削除
-        .slice(3, -1)
-        .replace(/\\n/g, "\n")
-        .split("\n")
-        .map((typeText) => typeText.trim());
+      const types =
+        typeProps[0] !== undefined
+          ? JSON.stringify(typeProps[0].typeText)
+              .replace("type Props = {\\n", "")
+              .replace("\\n};", "")
+              // typeAliasesTypeTextsの"[]"と最初のkeyvalueのインデントを削除
+              .slice(3, -1)
+              .replace(/\\n/g, "\n")
+              .split("\n")
+              .map((typeText) => typeText.trim())
+          : [];
 
       // 値がオブジェクトの場合は undefined を割り当てる
       const objectStart = types.findIndex((type) => type.includes(": {"));
@@ -143,6 +153,7 @@ const createStorybooks = (
       );
 
       const argsObj: Record<string, unknown> = {};
+      // TODO オブジェクトのないPropsでエラー
       typesFilterObjects.forEach((object) => {
         if (!object.includes(":")) {
           return;
@@ -187,7 +198,7 @@ const createStorybooks = (
       const importComponentName = path
         .relative(directoryPath, fullPath)
         .replace(".tsx", "");
-      const typeName = typeProps[0].typeName;
+      const typeName = typeProps[0] && typeProps[0].typeName;
 
       // ---
 
@@ -210,14 +221,26 @@ const createStorybooks = (
 
       const hasChildren = types.some((type) => /^children:/.test(type));
       const renderContent = hasChildren
-        ? `<${componentFile} {...args}>{args.children}</${componentFile}>`
-        : `<${componentFile} {...args} />`;
+        ? `<${componentFile} ${
+            argsBlock ? "{...args}" : ""
+          }>{args.children}</${componentFile}>`
+        : `<${componentFile} ${argsBlock ? "{...args}" : ""} />`;
+      // ---
+
+      const importFile = fullPath.substring(
+        fullPath.indexOf(COMPONENTS_PATH) + 1,
+      );
+      const importFilePath = importFile.substring(
+        0,
+        importFile.indexOf(componentFileName),
+      );
+
       // ---
 
       const content = `
 import { ComponentProps } from "react";
 import { Meta, StoryObj } from '@storybook/react';
-import { ${componentFile} } from './${importComponentName}';
+import { ${componentFile} } from '${ALIAS}/${importFilePath}${importComponentName}';
 ${importDeclarationsText}
 
 type Props = ComponentProps<typeof ${componentFile}>
