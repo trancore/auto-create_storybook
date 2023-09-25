@@ -30,7 +30,7 @@ const config: StorybookConfig = {
         ],
       };
       config.resolve.roots = [
-        path.resolve(__dirname, "../public"),
+        path.resolve(__dirname, "../src/assets"),
         "node_modules",
       ];
     }
