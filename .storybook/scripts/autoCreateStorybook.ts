@@ -2,6 +2,7 @@ import { exec } from "child_process";
 import fs from "fs";
 import path from "path";
 import { Project } from "ts-morph";
+import { promisify } from "util";
 
 const PROJECT = new Project({
   tsConfigFilePath: path.join(process.cwd(), "tsconfig.json"),
@@ -18,183 +19,198 @@ const COMPONENT_DIRECTORY_PATH = path.join(
  */
 const STORED_STORYBOOK_DIRECTORY_PATH = path.join(
   __dirname,
-  "../../src/components/ui",
+  "../../src/storybook",
 );
 
-const createdStorybookNames: string[] = [];
+const createdStorybookFilePaths: string[] = [];
 
+// ---
+// function
+// ---
+
+/**
+ * storybookを生成
+ * @param directoryPath 自動生成したいコンポーネントが保存されたディレクトリパス
+ */
 const createStorybooks = (directoryPath: string) => {
+  // ディレクトリパスの読み込み
   const componentFileOrDirectoryNames = fs.readdirSync(directoryPath);
 
+  // 読み込んだディレクトリを一つずつ処理する
   componentFileOrDirectoryNames.forEach(
     (componentFileOrDirectoryName: string) => {
       const fullPath = path.join(directoryPath, componentFileOrDirectoryName);
       const status = fs.statSync(fullPath);
+      const sourceFile = PROJECT.getSourceFile(fullPath);
 
+      // チェック処理
+      // ディレクトリの場合は、そのディレクトリ内で再度生成処理を行う
       if (status.isDirectory()) {
         createStorybooks(fullPath);
       }
-
+      // 読み込んだ対象がファイルでない場合、もしくはtsxファイルでない場合は無視する
       if (
-        status.isFile() &&
-        path.extname(componentFileOrDirectoryName) === ".tsx"
+        !status.isFile() ||
+        path.extname(componentFileOrDirectoryName) !== ".tsx"
       ) {
-        // ex: Table.tsx
-        const componentFileName = componentFileOrDirectoryName;
+        return;
+      }
+      // tsファイルとして読み込めなかった場合、警告を残しログを残す
+      if (!sourceFile) {
+        console.warn(`🚨 warn: not is TypeScript file (${fullPath}).`);
+        return;
+      }
 
-        // ex: Table
-        let componentFile = path.basename(componentFileName, ".tsx");
+      // 生成処理
+      // ex: Table.tsx
+      const componentFileName = componentFileOrDirectoryName;
+      // ex: Table
+      let componentFile = path.basename(componentFileName, ".tsx");
 
-        if (componentFile === "index") {
-          componentFile = path.basename(directoryPath);
-        }
+      if (componentFile === "index") {
+        componentFile = path.basename(directoryPath);
+      }
 
-        const storybookFilePath = path.join(
-          directoryPath,
-          `${componentFile}.stories.tsx`,
+      // storybookファイルのパス。保存場所もここで決まる。
+      const storybookFilePath = path.join(
+        directoryPath,
+        `${componentFile}.stories.tsx`,
+      );
+
+      // 今処理しているファイルがstorybookファイルの場合は無視する
+      if (componentFileName.includes(".stories.tsx")) {
+        return;
+      }
+
+      // 今処理しているファイルのstorybookファイルがすでに存在している場合はログを残し、無視する
+      if (fs.existsSync(storybookFilePath)) {
+        console.log(
+          `\n👮 info: already exist storybook file (${storybookFilePath}).`,
         );
+        return;
+      }
 
-        // 今処理しているファイルがstorybookファイルの場合は無視する
-        if (componentFileName.includes(".stories.tsx")) {
-          return;
-        }
+      // 生成したいコンポーネントディレクトリと処理しているコンポーネントとの相対パス
+      const relativeDirectoryPath = path
+        .relative(COMPONENT_DIRECTORY_PATH, directoryPath)
+        .split(path.sep)
+        .join("/");
 
-        // 今処理しているファイルのstorybookファイルがすでに存在している場合
-        if (fs.existsSync(storybookFilePath)) {
-          console.log(
-            `info: already exist storybook file (${storybookFilePath}).`,
-          );
-          return;
-        }
+      // meta title
+      const title = relativeDirectoryPath
+        ? `${relativeDirectoryPath}/${componentFile}`
+        : `${componentFile}`;
 
-        const relativeDirectoryPath = path
-          .relative(COMPONENT_DIRECTORY_PATH, directoryPath)
-          .split(path.sep)
-          .join("/");
+      // -----
 
-        const title = `${relativeDirectoryPath}/${componentFile}`;
-
-        const sourceFile = PROJECT.getSourceFile(fullPath);
-
-        if (!sourceFile) {
-          console.log(`info: not exist storybook file (${storybookFilePath}).`);
-          return;
-        }
-
-        // ファイル内のtypeを取得
-        const typeAliases = sourceFile.getTypeAliases();
-
-        // ex: ['Props']
-        const typeAliasesTypeNames: string[] = [];
-        // ex: [
-        //   'type Props = {\n' +
-        //   '  tableHeaderTitle: string;\n' +
-        //   '  tableBodyRows: {\n' +
-        //   '    firstCell: string;\n' +
-        //   '    secondCell: string;\n' +
-        //   '  }[];\n' +
-        //   '  textSize?: typeof DEFAULT_TEXT_SIZE;\n' +
-        //   '};'
-        // ]
-        const typeAliasesTypeTexts: string[] = [];
-
-        typeAliases.forEach((typeAlias) => {
-          typeAliasesTypeNames.push(typeAlias.getName());
-          typeAliasesTypeTexts.push(typeAlias.getText());
+      // ファイル内のtypeを取得
+      const typeAliases = sourceFile.getTypeAliases();
+      const typeAliasesTypes: { typeName: string; typeText: string }[] =
+        typeAliases.map((typeAlias) => {
+          return {
+            typeName: typeAlias.getName(),
+            typeText: typeAlias.getText(),
+          };
         });
+      // Propsのみを取り出す
+      const typeProps = typeAliasesTypes.filter(
+        (typeAliasesType) => typeAliasesType.typeName === "Props",
+      );
+      const types = JSON.stringify(typeProps[0].typeText)
+        .replace("type Props = {\\n", "")
+        .replace("\\n};", "")
+        // typeAliasesTypeTextsの"[]"と最初のkeyvalueのインデントを削除
+        .slice(3, -1)
+        .replace(/\\n/g, "\n")
+        .split("\n")
+        .map((typeText) => typeText.trim());
 
-        // ex
-        const types = JSON.stringify(typeAliasesTypeTexts)
-          .replace("type Props = {\\n", "")
-          .replace("\\n};", "")
-          // typeAliasesTypeTextsの"[]"と最初のkeyvalueのインデントを削除
-          .slice(4, -1)
-          .replace(/\\n/g, "\n")
-          .split("\n")
-          .map((typeText) => typeText.trim());
+      // 値がオブジェクトの場合は undefined を割り当てる
+      const objectStart = types.findIndex((type) => type.includes(": {"));
+      const objectEnd =
+        types.length -
+        1 -
+        types
+          .concat()
+          .reverse()
+          .findIndex((type) => type.includes("}"));
+      const typesFilterObjects = types.filter(
+        (_, index) => index < objectStart + 1 || index > objectEnd,
+      );
 
-        const argsObj: Record<string, unknown> = {};
+      const argsObj: Record<string, unknown> = {};
+      typesFilterObjects.forEach((object) => {
+        if (!object.includes(":")) {
+          return;
+        }
 
-        // 値がオブジェクトの場合はnullを割り当てる
-        const objectStart = types.findIndex((type) => type.includes(": {"));
-        const objectEnd = types.findIndex((type) => type.includes("}"));
-        const typesFilterObject = types.filter(
-          (_, index) => index < objectStart + 1 || index > objectEnd,
-        );
+        const key = object.split(":")[0].trim();
+        const value = object.split(":")[1].trim();
 
-        typesFilterObject.forEach((type) => {
-          if (!type.includes(":")) {
-            return;
-          }
+        // Optionalの場合は何もしない
+        if (key.includes("?")) {
+          return;
+        }
 
-          const key = type.split(":")[0].trim();
-          const value = type.split(":")[1].trim();
+        // storybook ファイルの args: {} に初期値を設定する
+        switch (!!value) {
+          case key.includes("children"):
+            argsObj[key] = "ここにchildrenの内容が表示されます";
+            break;
+          case value.includes("number"):
+            argsObj[key] = 1;
+            break;
+          case value.includes("number[]") || value.includes("Array<number>"):
+            argsObj[key] = [1, 2, 3];
+            break;
+          case value.includes("string"):
+            argsObj[key] = "ダミーデータ";
+            break;
+          case value.includes("string[]" || value.includes("Array<string>")):
+            argsObj[key] = ["ダミーデータ１", "ダミーデータ2", "ダミーデータ3"];
+            break;
+          case value.includes("boolean"):
+            argsObj[key] = false;
+            break;
+          default:
+            // 未知の型または複雑な型の場合、手動で設定してもらう
+            argsObj[key] = "手動で設定して下さい";
+        }
+      });
 
-          // Optionalの場合は何もしない
-          if (key.includes("?")) {
-            return;
-          }
+      // ---
 
-          // storybook ファイルの args: {} に初期値を設定する
-          switch (!!value) {
-            case key.includes("children"):
-              argsObj[key] = "ここにchildrenの内容が表示されます";
-              break;
-            case value.includes("number"):
-              argsObj[key] = 1;
-              break;
-            case value.includes("number[]") || value.includes("Array<number>"):
-              argsObj[key] = [1, 2, 3];
-              break;
-            case value.includes("string"):
-              argsObj[key] = "ダミーデータ";
-              break;
-            case value.includes("string[]" || value.includes("Array<string>")):
-              argsObj[key] = [
-                "ダミーデータ１",
-                "ダミーデータ2",
-                "ダミーデータ3",
-              ];
-              break;
-            case value.includes("boolean"):
-              argsObj[key] = false;
-              break;
-            default:
-              // 未知の型または複雑な型の場合、手動で設定してもらう
-              argsObj[key] = "手動で設定して下さい";
-          }
-        });
+      const importComponentName = path
+        .relative(directoryPath, fullPath)
+        .replace(".tsx", "");
+      const typeName = typeProps[0].typeName;
 
-        const importComponentName = path
-          .relative(directoryPath, fullPath)
-          .replace(".tsx", "");
-        // コンポーネント内の型定義はPropsだけとする
-        const typeName = typeAliasesTypeNames[0];
+      // ---
 
-        const importDeclarations = sourceFile.getImportDeclarations();
-        const importDeclarationsTexts: string[] = [];
-
-        importDeclarations.forEach((importDeclaration) => {
+      const importDeclarations = sourceFile.getImportDeclarations();
+      const importDeclarationsTexts = importDeclarations.map(
+        (importDeclaration) => {
           const importModule = importDeclaration.getModuleSpecifierValue();
           if (importModule.includes("~/")) {
-            importDeclarationsTexts.push(importDeclaration.getText());
+            return importDeclaration.getText();
           }
-        });
+        },
+      );
+      // ex: ['import classes from "~/components/common/button/LinkButton.module.scss";']
+      const importDeclarationsText = importDeclarationsTexts.join("\n");
+      const argsBlock = typeName
+        ? `args:${JSON.stringify(argsObj, null, 2)},`
+        : "";
 
-        // ex: ['import classes from "~/components/common/button/LinkButton.module.scss";']
-        const importDeclarationsText = importDeclarationsTexts.join("\n");
+      // ---
 
-        const argsBlock = typeName
-          ? `args:${JSON.stringify(argsObj, null, 2)},`
-          : "";
+      const hasChildren = types.some((type) => /^children:/.test(type));
+      const renderContent = hasChildren
+        ? `<${componentFile} {...args}>{args.children}</${componentFile}>`
+        : `<${componentFile} {...args} />`;
+      // ---
 
-        const hasChildren = types.some((type) => /^children:/.test(type));
-
-        const renderContent = hasChildren
-          ? `<${componentFile} {...args}>{args.children}</${componentFile}>`
-          : `<${componentFile} {...args} />`;
-
-        const content = `
+      const content = `
 import { ComponentProps } from "react";
 import { Meta, StoryObj } from '@storybook/react';
 import { ${componentFile} } from './${importComponentName}';
@@ -217,35 +233,39 @@ export const Default: Story = {
     return (${renderContent});
   },
 };
-  `;
+          `;
 
-        fs.writeFileSync(storybookFilePath, content);
-        createdStorybookNames.push(storybookFilePath);
-      }
+      fs.writeFileSync(storybookFilePath, content);
+      createdStorybookFilePaths.push(storybookFilePath);
     },
   );
 };
 
-console.log("Creating story files...");
+console.log(`\nstart create storybook.`);
+
 createStorybooks(COMPONENT_DIRECTORY_PATH);
-console.log("Done!");
 
-console.log("Running Prettier...");
-createdStorybookNames.forEach((StorybookName) => {
-  exec(
-    `prettier --write ${StorybookName}`,
-    (error: any, stdout: any, stderr: any) => {
-      if (error) {
-        console.log(`error: ${error.message}`);
-        return;
-      }
-      if (stderr) {
-        console.log(`stderr: ${stderr}`);
-        return;
-      }
-      console.log(`stdout: ${stdout}`);
-    },
-  );
-});
+console.log("\nDone!");
 
-console.log("Prettier completed!");
+console.log("\nRunning Prettier...");
+
+(async () => {
+  for (const storybook of createdStorybookFilePaths) {
+    await promisify(exec)(`prettier --write ${storybook}`)
+      .then((resolve) => {
+        if (resolve.stderr) {
+          console.log(`error: ${resolve.stderr.toString()}`);
+          return;
+        }
+        if (resolve.stdout) {
+          console.log(`stdout: ${resolve.stdout.toString()}`);
+          return;
+        }
+      })
+      .catch((error) => {
+        console.error(`error: ${error}`);
+        return;
+      });
+  }
+  console.log("Prettier completed!");
+})();
