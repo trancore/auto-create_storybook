@@ -1,0 +1,11 @@
+{
+  "name": "trancore.github.io",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/node": "^18.17.17",
+    "esbuild": "0.19.3",
+    "esbuild-register": "3.5.0"
+  }
+}

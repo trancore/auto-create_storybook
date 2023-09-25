@@ -2,7 +2,7 @@
   // コンパイルする際のオプションを記述
   "compilerOptions": {
     // 出力するJSのバージョン
-    "target": "ES6",
+    "target": "ES2022",
     // コンパイルする際に使用する組み込みライブラリ
     "lib": ["dom", "dom.iterable", "esnext"],
     // 出力するJSのモジュールの仕組み
