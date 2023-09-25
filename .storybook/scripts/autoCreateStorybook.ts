@@ -14,13 +14,6 @@ const COMPONENT_DIRECTORY_PATH = path.join(
   __dirname,
   "../../src/components/common/table",
 );
-/**
- * 自動生成したstorybookファイルの保管場所
- */
-const STORED_STORYBOOK_DIRECTORY_PATH = path.join(
-  __dirname,
-  "../../src/storybook",
-);
 
 const createdStorybookFilePaths: string[] = [];
 
@@ -30,9 +23,19 @@ const createdStorybookFilePaths: string[] = [];
 
 /**
  * storybookを生成
- * @param directoryPath 自動生成したいコンポーネントが保存されたディレクトリパス
+ * @param directoryPath storybbokを生成したいコンポーネントが保存されたディレクトリパス
+ * @param anotherStorybookPath storybookを生成したいコンポーネントと同じディレクトリに配置したくない場合、文字列を指定するとsrc配下にその文字列でディレクトリが生成される。
  */
-const createStorybooks = (directoryPath: string) => {
+const createStorybooks = (
+  directoryPath: string,
+  anotherStorybookPath?: string,
+) => {
+  // storybookを配置するパス。
+  // コンポーネントを同じディレクトリに保存する場合は、
+  const storybookDirectoryPath = anotherStorybookPath
+    ? directoryPath.replace("components", anotherStorybookPath)
+    : directoryPath;
+
   // ディレクトリパスの読み込み
   const componentFileOrDirectoryNames = fs.readdirSync(directoryPath);
 
@@ -46,7 +49,7 @@ const createStorybooks = (directoryPath: string) => {
       // チェック処理
       // ディレクトリの場合は、そのディレクトリ内で再度生成処理を行う
       if (status.isDirectory()) {
-        createStorybooks(fullPath);
+        createStorybooks(fullPath, anotherStorybookPath);
       }
       // 読み込んだ対象がファイルでない場合、もしくはtsxファイルでない場合は無視する
       if (
@@ -72,8 +75,9 @@ const createStorybooks = (directoryPath: string) => {
       }
 
       // storybookファイルのパス。保存場所もここで決まる。
+      fs.mkdirSync(storybookDirectoryPath, { recursive: true });
       const storybookFilePath = path.join(
-        directoryPath,
+        storybookDirectoryPath,
         `${componentFile}.stories.tsx`,
       );
 
@@ -243,9 +247,9 @@ export const Default: Story = {
 
 console.log(`\nstart create storybook.`);
 
-createStorybooks(COMPONENT_DIRECTORY_PATH);
+createStorybooks(COMPONENT_DIRECTORY_PATH, "storybooks");
 
-console.log("\nDone!");
+console.log("Done!");
 
 console.log("\nRunning Prettier...");
 
@@ -258,7 +262,7 @@ console.log("\nRunning Prettier...");
           return;
         }
         if (resolve.stdout) {
-          console.log(`stdout: ${resolve.stdout.toString()}`);
+          console.log(`stdout: ${resolve.stdout.toString()}`.replace("\n", ""));
           return;
         }
       })
