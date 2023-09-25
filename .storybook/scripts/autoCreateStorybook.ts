@@ -221,14 +221,28 @@ const createStorybooks = (
         ? `args:${JSON.stringify(argsObj, null, 2)},`
         : "";
 
+      let argsText = "";
+      for (const [key, value] of Object.entries(argsObj)) {
+        if (key === "children") {
+          break;
+        }
+        argsText += ` ${key}="${value}"`;
+      }
+
       // ---
 
       const hasChildren = types.some((type) => /^children:/.test(type));
+      const renderDefaultContent = hasChildren
+        ? `<${componentFile} ${
+            argsBlock && "{...args}"
+          } >{args.children}</${componentFile}>`
+        : `<${componentFile} ${argsBlock && "{...args}"} />`;
       const renderContent = hasChildren
         ? `<${componentFile} ${
-            argsBlock ? "{...args}" : ""
-          }>{args.children}</${componentFile}>`
-        : `<${componentFile} ${argsBlock ? "{...args}" : ""} />`;
+            argsBlock && "{...args}"
+          } ${argsText}>{args.children}</${componentFile}>`
+        : `<${componentFile} ${argsBlock && "{...args}"} ${argsText} />`;
+
       // ---
 
       const importFile = fullPath.substring(
@@ -259,12 +273,21 @@ export default {
 
 type Story = StoryObj<typeof ${componentFile}>;
 
+/**
+ * パターン
+ */
 export const Default: Story = {
+  render: ${typeName ? `(args: ${typeName})` : "()"} => {
+    return (${renderDefaultContent});
+  },
+};
+
+export const Pattern1: Story = {
   render: ${typeName ? `(args: ${typeName})` : "()"} => {
     return (${renderContent});
   },
 };
-          `;
+        `;
 
       fs.writeFileSync(storybookFilePath, content);
       createdStorybookFilePaths.push(storybookFilePath);
