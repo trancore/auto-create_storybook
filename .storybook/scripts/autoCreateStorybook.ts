@@ -140,6 +140,7 @@ const createStorybooks = (
           : [];
 
       // 値がオブジェクトの場合は undefined を割り当てる
+      // オブジェクトのネストにさらにp武ジェクトがあっても無視しています
       const objectStart = types.findIndex((type) => type.includes(": {"));
       const objectEnd =
         types.length -
@@ -148,9 +149,12 @@ const createStorybooks = (
           .concat()
           .reverse()
           .findIndex((type) => type.includes("}"));
-      const typesFilterObjects = types.filter(
-        (_, index) => index < objectStart + 1 || index > objectEnd,
-      );
+      const typesFilterObjects =
+        objectStart === -1
+          ? types
+          : types.filter(
+              (_, index) => index < objectStart + 1 || index > objectEnd,
+            );
 
       const argsObj: Record<string, unknown> = {};
       // TODO オブジェクトのないPropsでエラー
