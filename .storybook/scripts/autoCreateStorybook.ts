@@ -217,9 +217,7 @@ const createStorybooks = (
       );
       // ex: ['import classes from "~/components/common/button/LinkButton.module.scss";']
       const importDeclarationsText = importDeclarationsTexts.join("\n");
-      const argsBlock = typeName
-        ? `args:${JSON.stringify(argsObj, null, 2)},`
-        : "";
+      const argsObject = typeName ? `${JSON.stringify(argsObj, null, 2)},` : "";
 
       let argsText = "";
       for (const [key, value] of Object.entries(argsObj)) {
@@ -232,11 +230,6 @@ const createStorybooks = (
       // ---
 
       const hasChildren = types.some((type) => /^children:/.test(type));
-      const renderDefaultContent = hasChildren
-        ? `<${componentFile} ${
-            argsBlock && "{...args}"
-          } >{args.children}</${componentFile}>`
-        : `<${componentFile} ${argsBlock && "{...args}"} />`;
       const renderContent = hasChildren
         ? `<${componentFile} ${argsText}>{args.children}</${componentFile}>`
         : `<${componentFile} ${argsText} />`;
@@ -254,20 +247,17 @@ const createStorybooks = (
       // ---
 
       const content = `
-import { ComponentProps } from "react";
 import { Meta, StoryObj } from '@storybook/react';
 import { ${componentFile} } from '${ALIAS}/${importFilePath}${importComponentName}';
 ${importDeclarationsText}
 
-type Props = ComponentProps<typeof ${componentFile}>
-
-export default {
+const meta: Meta<typeof ${componentFile}> = {
   title: '${title}',
   component: ${componentFile},
   tags: ['autodocs'],
-  ${argsBlock}
   // Add your own control here
-} as Meta<Props>;
+}
+export default meta;
 
 type Story = StoryObj<typeof ${componentFile}>;
 
@@ -275,9 +265,7 @@ type Story = StoryObj<typeof ${componentFile}>;
  * パターン
  */
 export const Selectable: Story = {
-  render: ${typeName ? `(args: ${typeName})` : "()"} => {
-    return (${renderDefaultContent});
-  },
+  args: ${argsObject}
 };
 
 export const Pattern1: Story = {
