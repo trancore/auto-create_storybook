@@ -32,10 +32,12 @@ const createdStorybookFilePaths: string[] = [];
 /**
  * storybookを生成
  * @param directoryPath storybbokを生成したいコンポーネントが保存されたディレクトリパス
- * @param anotherStorybookPath storybookを生成したいコンポーネントと同じディレクトリに配置したくない場合、文字列を指定するとsrc配下にその文字列でディレクトリが生成される。
+ * @param equalsToAbsolutePath storybookのサイドバー表示を、生成したいコンポーネントの絶対パスとするかどうか。falseの場合、自動生成したいコンポーネントのパスからの相対パスから表示される。
+ * @param anotherStorybookPath storybookファイルを、生成したいコンポーネントと同じディレクトリに配置したくない場合、文字列を指定するとsrc配下にその文字列でディレクトリが生成される。
  */
 const createStorybooks = (
   directoryPath: string,
+  equalsToAbsolutePath: boolean = false,
   anotherStorybookPath?: string,
 ) => {
   // storybookを配置するパス。
@@ -56,7 +58,7 @@ const createStorybooks = (
       // チェック処理
       // ディレクトリの場合は、そのディレクトリ内で再度生成処理を行う
       if (status.isDirectory()) {
-        createStorybooks(fullPath, anotherStorybookPath);
+        createStorybooks(fullPath, equalsToAbsolutePath, anotherStorybookPath);
       }
       // 読み込んだ対象がファイルでない場合、もしくはtsxファイルでない場合は無視する
       if (
@@ -206,17 +208,20 @@ const createStorybooks = (
 
       // ---
 
-      const importDeclarations = sourceFile.getImportDeclarations();
-      const importDeclarationsTexts = importDeclarations.map(
-        (importDeclaration) => {
-          const importModule = importDeclaration.getModuleSpecifierValue();
-          if (importModule.includes("~/")) {
-            return importDeclaration.getText();
-          }
-        },
-      );
-      // ex: ['import classes from "~/components/common/button/LinkButton.module.scss";']
-      const importDeclarationsText = importDeclarationsTexts.join("\n");
+      // const importDeclarations = sourceFile.getImportDeclarations();
+      // const importDeclarationsTexts = importDeclarations.map(
+      //   (importDeclaration) => {
+      //     const importModule = importDeclaration.getModuleSpecifierValue();
+      //     if (importModule.includes("~/")) {
+      //       return importDeclaration.getText();
+      //     }
+      //   },
+      // );
+      // // ex: ['import classes from "~/components/common/button/LinkButton.module.scss";']
+      // const importDeclarationsText = importDeclarationsTexts.join("\n");
+
+      // ---
+
       const argsObject = typeName ? `${JSON.stringify(argsObj, null, 2)},` : "";
 
       let argsText = "";
@@ -249,10 +254,9 @@ const createStorybooks = (
       const content = `
 import { Meta, StoryObj } from '@storybook/react';
 import { ${componentFile} } from '${ALIAS}/${importFilePath}${importComponentName}';
-${importDeclarationsText}
 
 const meta: Meta<typeof ${componentFile}> = {
-  title: '${title}',
+  ${equalsToAbsolutePath ? "" : `title: "${title}",`}
   component: ${componentFile},
   tags: ['autodocs'],
   // Add your own control here
@@ -283,7 +287,7 @@ export const Pattern1: Story = {
 
 console.log(`\nstart create storybook.`);
 
-createStorybooks(COMPONENT_DIRECTORY_PATH, "storybooks");
+createStorybooks(COMPONENT_DIRECTORY_PATH, false, "storybooks");
 
 console.log("Done!");
 
